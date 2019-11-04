@@ -1,0 +1,3 @@
+# We'll use symlinks to these folders (that live in the repo bipartite-pairs), but don't want to check them into this repo. 
+python-scoring/
+expt-code/
