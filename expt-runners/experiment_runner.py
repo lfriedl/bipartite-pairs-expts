@@ -13,14 +13,14 @@ sys.path.append("../expt-code")
 #sys.path.append("/home/lfriedl/bipartite-pairs/python-scoring")  # (make a proper __init.py__ later?)
 import expts_labeled_data
 import score_data
-
-# todo: move this file into other (expt-centric) repo [will need to bring others too, though]
+import prelim_loc_data_expts
 
 
 def score_data_set(data_dir, trial_num, inference_dir_name, method_spec="all",
                    save_pair_scores=True, sims_for_mixed_pairs=None, flip_high_ps=False,
                    remove_boundary_items=False, remove_boundary_affils=True, pi_vector_to_use=None, prefer_faiss=True,
-                   affil_subset_every_1_4=False):
+                   affil_subset_every_1_4=False, loc_data_bipartite_file=None, loc_data_true_pairs_file=None,
+                   verbose=False):
     """
     This function hard-codes some file names (to standardize):
         data_dir/allInputDataFiles.tgz contains files of the form data1_adjMat.mtx.gz, data1_numPos.txt and data1_phi.txt.gz
@@ -43,18 +43,27 @@ def score_data_set(data_dir, trial_num, inference_dir_name, method_spec="all",
     """
 
     # 1a. construct input filenames and extract data file(s) from tar archive, if not already found locally.
-    # For now, assume what we need are adjMat and numPos.
-    adj_mat_file_basename = "./data" + str(trial_num) + "_adjMat.mtx.gz"    # nb: "./" required to access it from tar
-    num_pos_file_basename = "./data" + str(trial_num) + "_numPos.txt"
-    adj_mat_infile = data_dir + "/" + adj_mat_file_basename
-    num_pos_infile = data_dir + "/" + num_pos_file_basename
+    loc_data_format = (loc_data_bipartite_file is not None and loc_data_true_pairs_file is not None)
+    if loc_data_format:
+        basenamefiles = ["./data" + str(trial_num) + ".rowIDs"]
+    else:   # usual format
+        # what we need are adjMat and numPos.
+        adj_mat_file_basename = "./data" + str(trial_num) + "_adjMat.mtx.gz"    # nb: "./" required to access it from tar
+        num_pos_file_basename = "./data" + str(trial_num) + "_numPos.txt"
+        adj_mat_infile = data_dir + "/" + adj_mat_file_basename
+        num_pos_infile = data_dir + "/" + num_pos_file_basename
+        basenamefiles = [adj_mat_file_basename, num_pos_file_basename]
+
+    fullpathfiles = [data_dir + "/" + basefile for basefile in basenamefiles]
     files_already_present = True
 
-    if not (os.path.isfile(adj_mat_infile) and os.path.isfile(num_pos_infile)):
+    if not all([os.path.isfile(file) for file in fullpathfiles]):
+    # if not (os.path.isfile(adj_mat_infile) and os.path.isfile(num_pos_infile)):
         files_already_present = False
         tar_infile = data_dir + "/allInputDataFiles.tgz"
         tf = tarfile.open(tar_infile)
-        members = [tf.getmember(filename) for filename in [adj_mat_file_basename, num_pos_file_basename]]
+        members = [tf.getmember(filename) for filename in basenamefiles]
+        # members = [tf.getmember(filename) for filename in [adj_mat_file_basename, num_pos_file_basename]]
         tf.extractall(path=data_dir, members=members)
 
 
@@ -82,10 +91,16 @@ def score_data_set(data_dir, trial_num, inference_dir_name, method_spec="all",
         sims_for_mixed_pairs = "standard"   # magic word for default
 
     # load data into variables
-    adj_mat = score_data.load_adj_mat(adj_mat_infile)
-    with open(num_pos_infile) as fin:
-        num_true_pos = int(fin.readline())
-    true_labels_func = partial(expts_labeled_data.get_true_labels_expt_data, num_true_pos)
+    if loc_data_format:
+        adj_mat, item_names, true_labels_func = prelim_loc_data_expts.get_loc_expt_data(loc_data_bipartite_file,
+                                                                                       loc_data_true_pairs_file,
+                                                                                       fullpathfiles[0])
+    else:
+        adj_mat = score_data.load_adj_mat(adj_mat_infile)
+        item_names = None
+        with open(num_pos_infile) as fin:
+            num_true_pos = int(fin.readline())
+        true_labels_func = partial(expts_labeled_data.get_true_labels_expt_data, num_true_pos)
 
     if affil_subset_every_1_4:
         subset_adj_mat = sparse.csc_matrix((adj_mat.shape[0], int(adj_mat.shape[1]/4)), dtype='int')
@@ -98,15 +113,14 @@ def score_data_set(data_dir, trial_num, inference_dir_name, method_spec="all",
             pi_vector_to_use = subset_pi_vector
 
     if not files_already_present:
-        os.remove(adj_mat_infile)
-        os.remove(num_pos_infile)
+        [os.remove(infile) for infile in fullpathfiles]
 
     # 2. run the expt
     score_data.run_and_eval(adj_mat, true_labels_func=true_labels_func,
                             method_spec=method_spec,
                             evals_outfile=evals_outfile,
-                            pair_scores_outfile=pair_scores_outfile,
-                            print_timing=False, prefer_faiss=prefer_faiss,
+                            pair_scores_outfile=pair_scores_outfile, row_labels=item_names,
+                            print_timing=verbose, prefer_faiss=prefer_faiss,
                             mixed_pairs_sims=sims_for_mixed_pairs,
                             flip_high_ps=flip_high_ps, pi_vector_to_use=pi_vector_to_use,
                             remove_boundary_items=remove_boundary_items, remove_boundary_affils=remove_boundary_affils)
@@ -117,7 +131,9 @@ def score_whole_directory(data_dir, inference_dir_name, method_spec="all",
                           num_trials=None, extract_all=True, run_in_parallel=False,
                           save_pair_scores=True, sims_for_mixed_pairs=None, flip_high_ps=False,
                           remove_boundary_items=False, remove_boundary_affils=True,
-                          pi_vector_to_use=None, prefer_faiss=True, affil_subset_every_1_4=False):
+                          pi_vector_to_use=None, prefer_faiss=True, affil_subset_every_1_4=False,
+                          loc_data_bipartite_file=None, loc_data_true_pairs_file=None,
+                          verbose=False):
     """
     Runs all trials in a directory.
     :param data_dir:
@@ -168,7 +184,10 @@ def score_whole_directory(data_dir, inference_dir_name, method_spec="all",
                                     'remove_boundary_items': remove_boundary_items,
                                     'remove_boundary_affils': remove_boundary_affils,
                                     'prefer_faiss': prefer_faiss,
-                                    'affil_subset_every_1_4': affil_subset_every_1_4})
+                                    'affil_subset_every_1_4': affil_subset_every_1_4,
+                                    'loc_data_bipartite_file': loc_data_bipartite_file,
+                                    'loc_data_true_pairs_file': loc_data_true_pairs_file,
+                                    'verbose': verbose})
              for trial in range(1, num_trials+1)]
         [r.get() for r in mp_results]   # r.get() blocks until process completes
         pool.close()
@@ -181,7 +200,9 @@ def score_whole_directory(data_dir, inference_dir_name, method_spec="all",
                            sims_for_mixed_pairs=sims_for_mixed_pairs, flip_high_ps=flip_high_ps,
                            remove_boundary_items=remove_boundary_items, remove_boundary_affils=remove_boundary_affils,
                            pi_vector_to_use=pi_vector_to_use, prefer_faiss=prefer_faiss,
-                           affil_subset_every_1_4=affil_subset_every_1_4)
+                           affil_subset_every_1_4=affil_subset_every_1_4,
+                           loc_data_bipartite_file=loc_data_bipartite_file,
+                           loc_data_true_pairs_file=loc_data_true_pairs_file, verbose=verbose)
 
 
     # clean up and summarize
@@ -218,8 +239,8 @@ def summarize_results(inference_dir_path, num_trials_expected):
     :param inference_dir_path:
     :return: number of results files found
     """
-    # run retrieveResultsCI.R
-    path_to_R_script = '/home/lfriedl/bipartite-pairs-expts/expt-runners/retrieveResultsCI.R'
+    # run retrieveResultsCI.R, which is in same directory as this file
+    path_to_R_script = os.path.dirname(os.path.abspath(__file__)) + '/retrieveResultsCI.R'
     sys_cmd_to_run = "Rscript -e source('" + path_to_R_script + "') -e computeAvgsVars(directory='" + \
                      inference_dir_path + "')"
     subprocess.check_call(sys_cmd_to_run.split(' '))    # raises an error if return code != 0
