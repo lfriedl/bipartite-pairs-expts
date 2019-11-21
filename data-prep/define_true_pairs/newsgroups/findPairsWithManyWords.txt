@@ -1,0 +1,8 @@
+% cat sci.med_* > sci.med.allPairs 
+
+in R,
+> data = read.table("sci.med.allPairs")
+> o = order(data[[3]], decreasing=T)
+> sorted = data[o,]
+# after determining that I'd use a cutoff of 10:
+> write.table(data[data[,3] >= 10,], file="highestPairs.txt", row.names=F, col.names=F)
