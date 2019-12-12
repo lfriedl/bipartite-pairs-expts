@@ -48,3 +48,62 @@ checkNGDataPaths = function(exptDirFullPath, truePositivesFile, pathToNGData, wh
     }
     return(0)
 }
+
+checkRealityDataPaths = function(exptDirFullPath, realityDataDir) {
+    dirExists = file.info(exptDirFullPath)$isdir
+    if (is.na(dirExists) || !dirExists) {
+        dirExists = dir.create(exptDirFullPath)
+        if (!dirExists) {
+            warning("checkDataPaths: Couldn't find/create expt dir")
+            return(1)
+        }
+    }
+    dataExists = file.info(realityDataDir)$isdir
+    if (is.na(dataExists) || !dataExists) {
+        warning("checkDataPaths: couldn't find reality mining data")
+        return(1)
+    }
+    return(0)
+    
+}
+
+
+createRealDataReality = function(exptDirFullPath, numPositivePairs, numSingletons, minTrialNum, maxTrialNum,
+                                      realityDataDir) {
+    
+    # make sure the output dir exists or create it. 
+    if (checkRealityDataPaths(exptDirFullPath, realityDataDir)) {
+        return()
+    }
+    
+    allItemsAndIds = readAllRealityData(realityDataDir)
+	# this phi matches the way we're sampling rows from the matrix
+    phi = learnPhiWithAvgingFromRealityData(allItemsAndIds$dataMatrix, allItemsAndIds$personIds)
+    
+    for (i in minTrialNum:maxTrialNum) {
+        # create data file for trial i
+        newDataFileName = paste(exptDirFullPath, "/data", i, ".Rdata", sep="")
+        
+        dataItems = sampleRealityMiningDataFromMatrix(allItemsAndIds$dataMatrix, allItemsAndIds$personIds,
+                                          numPositivePairs, numSingletons)
+        
+        save(dataItems, numPositivePairs, phi, file=newDataFileName)    
+        
+    }    
+}
+
+# Take avg of each person -> 1 row
+# Learn phi from that new matrix
+learnPhiWithAvgingFromRealityData = function(dataMatrix, personIds) {
+     
+    sumByPerson = rowsum(as.matrix(dataMatrix), personIds)   # slow! takes several minutes
+    
+    # rows are now in numerical order by personId. table(personIds) will also order them this way,
+    # but to be sure, let's explicitly grab the correct row names
+    tab = table(personIds)  # tab[personId] = num occurrences (within personIds)
+    avgByPerson = sumByPerson / as.vector(tab[rownames(sumByPerson)]) # divides each row of sumByPerson by num rows for that person
+    
+    return(learnPhiFromBinaryDataMatrix(avgByPerson))  # it's okay that input matrix's entries aren't binary
+    
+}
+
