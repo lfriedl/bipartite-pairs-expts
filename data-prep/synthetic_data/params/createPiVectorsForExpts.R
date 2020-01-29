@@ -10,4 +10,4 @@ pi_vectors[60:69,] = rexp(1000, rate=50)
 pi_vectors[70:79,] = rbeta(1000, shape1=3, shape2=3)
 
 save(pi_vectors, file="pi_vectors_forExpts.Rdata")
-write.table(pi_vectors, file="test.csv", col.names=F, row.names=F, sep=",")
+write.table(pi_vectors, file="pi_vectors.csv", col.names=F, row.names=F, sep=",")

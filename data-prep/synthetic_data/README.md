@@ -1,4 +1,4 @@
-# Parameters for the 69 settings
+# Parameters for the synthetic data settings
 
 The parameters were generated using [`params/createPiVectorsForExpts.R`](params/createPiVectorsForExpts.R). The other two files are the resulting parameters, saved in two formats.
 

@@ -38,7 +38,7 @@ To sample graphs for expts: sample 5 disjoint positive pairs, then 65 singletons
 
 Source data: <http://realitycommons.media.mit.edu/realitymining.html> (must be requested). Specifically, the Matlab file `realitymining.mat`. This contains (among other things), for each person, the timestamped (or daily) records of each phone app they used, each bluetooth device detected, and each cell phone tower detected.
 
-Preprocessing: events extracted into text files (with minimal filtering) and aggregated into daily and weekly summaries per person. [Code](reality_mining-preproc).
+Preprocessing: events extracted into text files (with minimal filtering) and aggregated into daily and weekly summaries per person. [Code in `reality_mining-preproc`](reality_mining-preproc).
 
 True pairs: instances of the same person on different days (or weeks, respectively).
 
@@ -48,13 +48,18 @@ Sampling: choose some person IDs to be in pairs and others to be singletons. The
 
 # Congress
 
-Source data:
+Source data: U.S. House of Representatives legislators, bill sponsorships, and votes. Data obtained from [congress-legislators](https://www.github.com/unitedstates/congress-legislators) and [congress](https://github.com/unitedstates/congress) repositories maintained by <https://theunitedstates.io/>; see [congress/raw-data/README.md](congress/raw-data/README.md) for details.
 
-Preprocessing:
+Preprocessing and bipartite graphs: Run `getAllMatrices.R` in [`create-adj-matrices`](create-adj-matrices). Given a Congress number, get list of legislators in office with their parties. Create adjacency matrices in which rows are legislators of one party and ...
 
-True pairs:
+* Bill sponsorship matrix: each column is a bill introduced (of type H.R. or H.J.Res.), with 1s for the bill's sponsors and cosponsors (ignoring any cosponsors that later withdrew support). 
 
-Bipartite graph:
+* Votes matrix: each column is a roll call vote which was not unanimous and for which there was a yes option (either "Yea" or "Aye"). Yes gets a 1 in the matrix.
+
+* Matrix sizes (for Congresses 110 to 113): 183 to 246 members of Congress in each party, 5511 to 7439 bills sponsored, 1199 to 1864 roll call votes.
+
+True pairs: Pairs of legislators who had the highest number of cosponsorships. 
+
 
 Sampling:
 
