@@ -55,6 +55,29 @@ converDirDataFiles = function(inDir, outSubdir, whichVars="all") {
 
 }
 
+# files should be full (or relative) paths
+# Saves 3 files: .mtx, .itemnames, .affilnames
+convertMatrix = function(infile, outfileBase, quarterAffils=T) {
+        vars = load(infile)             # provides adjMatrix
+        if (vars != 'adjMatrix') {
+                stop(paste("didn't find adjMatrix variable in", infile))
+        }
+        if (quarterAffils) {
+                affilsToKeep = c(F, F, F, T)    # orig R code took the first of every 4, but this matches the python code
+                adjMatrix = adjMatrix[,affilsToKeep]
+        }
+
+        mat_outfile = paste0(outfileBase, ".mtx")
+        writeMM(adjMatrix, mat_outfile)
+        system(paste("gzip", mat_outfile))
+
+        rows_file = paste0(outfileBase, ".itemnames")
+        fwrite(data.frame(x=rownames(adjMatrix)), file=rows_file, col.names=F)
+        cols_file = paste0(outfileBase, ".affilnames")
+        fwrite(data.frame(x=colnames(adjMatrix)), file=cols_file, col.names=F)
+}
+
+
 # Just a stub for now
 # outfile: send it as .csv, but it'll actually be saved as .csv.gz
 convertScoredPairsFile = function(infile, outfile, oldFormat=F) {

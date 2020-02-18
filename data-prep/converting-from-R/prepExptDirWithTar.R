@@ -7,7 +7,7 @@ source("data-conversion.R")
 # oldTar: if all the old data is stored (compressed) in a single tar file, its path
 # 
 # new location for data will be
-convertDataDir = function(newDirTopLevel, oldExptPath, oldTar=NULL, clobberOk=F) {
+convertDataDirToTar = function(newDirTopLevel, oldExptPath, oldTar=NULL, clobberOk=F) {
 	# oldExptPath: if there's a tar file, new location includes the full path of oldExptPath. If there's no tar file, new location includes just its final dirname.
 
 	if (! is.null(oldTar)) {
@@ -38,7 +38,7 @@ convertDataDir = function(newDirTopLevel, oldExptPath, oldTar=NULL, clobberOk=F)
 		errCode = system2("cp", strsplit(cpArgs, " ")[[1]])
 	}
 	if (errCode) {
-		warning("convertDataDir(): couldn't find source data")
+		warning("convertDataDirToTar(): couldn't find source data")
 		return()
 	}
 
