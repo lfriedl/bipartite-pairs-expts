@@ -38,13 +38,15 @@ To sample graphs for expts: sample 5 disjoint positive pairs, then 65 singletons
 
 Source data: <http://realitycommons.media.mit.edu/realitymining.html> (must be requested). Specifically, the Matlab file `realitymining.mat`. This contains (among other things), for each person, the timestamped (or daily) records of each phone app they used, each bluetooth device detected, and each cell phone tower detected.
 
-Preprocessing: events extracted into text files (with minimal filtering) and aggregated into daily and weekly summaries per person. [Code in `reality_mining-preproc`](reality_mining-preproc).
+Preprocessing: events extracted into text files (with minimal filtering) and aggregated into daily and weekly summaries per person. [Code in `reality_mining`](reality_mining) (see README there).
 
 True pairs: instances of the same person on different days (or weeks, respectively).
 
-Bipartite graph: each row is a person + day (or week), each column is an app name (or the ID of a bluetooth device or cell tower). Code in [dataReader.R](sample_graphs/dataReader.R):`readAllRealityData()`.
+Code that creates/saves bipartite graph + samples small graphs: [`reality_mining/realitySampleGraphs.R`](reality_mining/realitySampleGraphs.R).
 
-Sampling: choose some person IDs to be in pairs and others to be singletons. Then for each singleton, choose a day/week to use (among those seen in the data), and for each pair, choose two days/weeks. Code in [dataReader.R](sample_graphs/dataReader.R):`sampleRealityMiningDataFromMatrix()`.
+* Bipartite graph: each row is a person + day (or week), each column is an app name (or the ID of a bluetooth device or cell tower). Code in [dataReader.R](sample_graphs/dataReader.R):`readAllRealityData()`.
+
+* Sampling: choose some person IDs to be in pairs and others to be singletons. Then for each singleton, choose a day/week to use (among those seen in the data), and for each pair, choose two days/weeks. Code in [dataReader.R](sample_graphs/dataReader.R):`sampleRealityMiningDataFromMatrix()`.
 
 # Congress
 
