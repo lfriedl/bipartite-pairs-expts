@@ -5,17 +5,16 @@ Each data set has different formats for its raw and intermediate files.
 
 Broadly, they each go through a process like this:
 
-1. Raw --> Preprocessed1 --> define what the "true pairs" are
-1. Raw --> Preprocessed2 --> create bipartite graph
-1. Using bipartite graph + true pairs --> create samples to use for experiments.
+1. Raw --> Preprocessed1 --> create bipartite graph
+1. Raw --> Preprocessed2 --> define what the "true pairs" are
+1. (For some data sets:) Use bipartite graph + true pairs --> create samples to use for experiments. (For other data sets, we skip this step and simply score all pairs of items in the bipartite graph.)
 
-In the experimental setup I've been using, a sample is a subgraph of the bipartite graph. It's formed from a set of (around 100) items plus all their affiliations. The set of items contains some (few) true pairs and some (many) singletons. 
+In the experimental setup I've been using, a sample is a subgraph of the bipartite graph. It's formed from a set of (under 100) items plus all their affiliations. The set of items contains some (few) true pairs and some (many) singletons. 
 
-The experiment code then reads one sample and computes scores for all its pairs of items.
+The experiment code then reads one sample (or, for some data sets, the whole bipartite graph) and computes scores for all its pairs of items.
      
-(The samples are stored in a consistent format. At least for most data sets...)
+The bipartite graphs are stored in Matrix Market format (`.mtx`). Most preprocessing was originally done in R, so a lot of data is initially stored in .Rdata format, then converted to .mtx. The true pairs are either stored as text files with lists of pairs or as additional (sparse) graphs in .mtx format. Matrix Market format doesn't include node names, so we store these in additional files with the suffixes `.itemnames` and `.affilnames`.
 
-(I've also been considering whether to change the experimental setup to sample positive and negative pairs directly from the whole data set's bipartite graph. The biggest bottleneck would be adapting the scoring code to work on an arbitrary set of pairs. It's been on the todo list forever, but isn't implemented yet.)
 
 
 # Newsgroups
@@ -32,7 +31,7 @@ True pairs:
 
 Bipartite graph (one matrix per newsgroup): each row is a document, each column is a word in the vocabulary. Matrix entries are either 0 or 1.
 
-To sample graphs for expts: sample 5 disjoint positive pairs, then 65 singletons, to make a total of 75 items. Makes sure that the sample doesn't (accidentally) include any additional true pairs. (Code in  [prepSamplesRealData.R](sample_graphs/prepSamplesRealData.R):`createRealDataForNewsgroup()`)
+To sample graphs for expts: sample 5 disjoint positive pairs, then 65 singletons, to make a total of 75 items. Makes sure that the sample doesn't (accidentally) include any additional true pairs. (Code in  [prepSamplesRealData.R](sample_graphs/prepSamplesRealData.R):`createRealDataForNewsgroup()` creates samples. The .Rdata format is then converted to .mtx format using calls to [converting-from-R/prepExptDirWithTar.R](converting-from-R/prepExptDirWithTar.R):`convertDataDirToTar()`.)
 
 # Reality mining
 
@@ -42,11 +41,11 @@ Preprocessing: events extracted into text files (with minimal filtering) and agg
 
 True pairs: instances of the same person on different days (or weeks, respectively).
 
-Code that creates/saves bipartite graph + samples small graphs: [`reality_mining/realitySampleGraphs.R`](reality_mining/realitySampleGraphs.R).
+Code that creates/saves bipartite graph + samples small graphs: top-level call is [`reality_mining/realitySampleGraphs.R`](reality_mining/realitySampleGraphs.R).
 
 * Bipartite graph: each row is a person + day (or week), each column is an app name (or the ID of a bluetooth device or cell tower). Code in [dataReader.R](sample_graphs/dataReader.R):`readAllRealityData()`.
 
-* Sampling: choose some person IDs to be in pairs and others to be singletons. Then for each singleton, choose a day/week to use (among those seen in the data), and for each pair, choose two days/weeks. Code in [dataReader.R](sample_graphs/dataReader.R):`sampleRealityMiningDataFromMatrix()`.
+* Sampling: choose some person IDs to be in pairs and others to be singletons. Then for each singleton, choose a day/week to use (among those seen in the data), and for each pair, choose two days/weeks. Code in [dataReader.R](sample_graphs/dataReader.R):`sampleRealityMiningDataFromMatrix()` both creates samples and converts them from .Rdata to .mtx.
 
 # Congress
 
@@ -60,8 +59,12 @@ Preprocessing and bipartite graphs: Run `getAllMatrices.R` in [`create-adj-matri
 
 * Matrix sizes (for Congresses 110 to 113): 183 to 246 members of Congress in each party, 5511 to 7439 bills sponsored, 1199 to 1864 roll call votes.
 
-True pairs: Pairs of legislators who had the highest number of cosponsorships. 
+True pairs: Pairs of legislators who had the highest number of cosponsorships. Uses the bill sponsorship matrix. For each party x session, a different cutoff on cosponsorships is picked, to select < 1% of all pairs in that data set. (Code in [congress/true-pairs/createTruePairsFiles.R](congress/true-pairs/createTruePairsFiles.R):`runAll()`.)
 
 
-Sampling:
+Sampling: none (any more). Scoring all pairs in the bipartite matrix. The two functions in [congress/create-adj-matrices/convertMatrices.R](congress/create-adj-matrices/convertMatrices.R) create .mtx files for:
+
+* the bipartite matrix
+* the cosponsorship matrix
+* the true pairs (a thresholded binary version of the cosponsorship matrix).
 
