@@ -16,7 +16,7 @@ import prelim_loc_data_expts
 # map to matrix rows.
 # -So, node identifiers in both types of files should always be treated as "labels."
 # -Only exception: in the .rowIDs files I create, nodes are referred to by their indices in the adj_mat. This has
-# the side effect of only sampling nodes that have >0 affils.
+# the side effect of only sampling nodes that have >0 affils. (Might want to revisit this choice.)
 
 def stratify_by_num_edges(adj_mat_infile, edges_infile, outdir, min_edges, max_edges):
     """
@@ -97,7 +97,7 @@ def read_sample_look_save(adj_mat_infile, edges_infile, num_nodes, num_samples, 
             [tf.add(rows_outfile_base_dir + "/" + datafile, arcname="./" + datafile) for datafile in datafiles]
 
 
-# Note: paths correspond to laptop, but on the server they get moved.
+# Note: paths correspond to laptop, but files are in different places on the server.
 def record_of_runs():
     # In brightkite data:
     # -everyone has at least 1 friendship edge; some have 0 checkins.
@@ -136,8 +136,8 @@ def record_of_runs():
     for i in range(6,11):
         print("looking at items with degree " + str(i))
         read_sample_look_save(
-            adj_mat_infile = '/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified/bipartite_adj_' + str(i) + 'friends.txt',
-            edges_infile = '/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified/loc-edges_' + str(i) + 'friends.txt',
+            adj_mat_infile = '/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified/bipartite_adj_' + str(i) + 'friends.txt.gz',
+            edges_infile = '/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified/loc-edges_' + str(i) + 'friends.txt.gz',
             num_nodes=500, num_samples=400, keep_if_min_edges=4,
             rows_outfile_base_dir='/Users/lfriedl/Documents/dissertation/binary-ndim/gowalla-expts/stratified_' + str(i) + 'friends/')
 
@@ -158,19 +158,19 @@ if __name__ == "__main__":
             # num_nodes=500, num_samples=400, keep_if_min_edges=4,
             # rows_outfile_base_dir='/Users/lfriedl/Documents/dissertation/binary-ndim/brightkite-expts/stratified_' + str(i) + 'friends/')
 
-    # for i in range(6, 10):
-    #     print("looking at items with degree " + str(i))
-    #     read_sample_look_save(
-    #         adj_mat_infile='/Users/lfriedl/Documents/dissertation/real-data/brightkite/stratified/bipartite_adj_' + str(i) + 'friends.txt',
-    #         edges_infile='/Users/lfriedl/Documents/dissertation/real-data/brightkite/stratified/loc-edges_' + str(i) + 'friends.txt',
-    #         num_nodes=500, num_samples=400, keep_if_min_edges=4,
-    #         rows_outfile_base_dir='/Users/lfriedl/Documents/dissertation/binary-ndim/brightkite-expts/stratified_' + str(i) + 'friends/')
+    for i in range(6,10):
+        print("looking at items with degree " + str(i))
+        read_sample_look_save(
+            adj_mat_infile = '/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified/bipartite_adj_' + str(i) + 'friends.txt.gz',
+            edges_infile = '/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified/loc-edges_' + str(i) + 'friends.txt.gz',
+            num_nodes=500, num_samples=400, keep_if_min_edges=4,
+            rows_outfile_base_dir='/Users/lfriedl/Documents/dissertation/binary-ndim/gowalla-expts/stratified_' + str(i) + 'friends/')
 
 
     # In gowalla data, I don't have the same stats handy, but try doing the same as brightkite
-    stratify_by_num_edges(adj_mat_infile='/Users/lfriedl/Documents/dissertation/real-data/gowalla/bipartite_adj.txt',
-                          edges_infile='/Users/lfriedl/Documents/dissertation/real-data/gowalla/loc-gowalla_edges.txt',
-                          outdir='/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified', min_edges=1, max_edges=10)
+    # stratify_by_num_edges(adj_mat_infile='/Users/lfriedl/Documents/dissertation/real-data/gowalla/bipartite_adj.txt',
+    #                       edges_infile='/Users/lfriedl/Documents/dissertation/real-data/gowalla/loc-gowalla_edges.txt',
+    #                       outdir='/Users/lfriedl/Documents/dissertation/real-data/gowalla/stratified', min_edges=1, max_edges=10)
     # for i in range(2,11):
     #     print("looking at items with degree " + str(i))
     #     read_sample_look_save(

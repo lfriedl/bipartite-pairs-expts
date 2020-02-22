@@ -7,6 +7,7 @@ import warnings
 from functools import partial
 import multiprocessing
 from scipy import sparse
+import numpy as np
 
 sys.path.append("../python-scoring")
 sys.path.append("../expt-code")
@@ -14,12 +15,14 @@ sys.path.append("../expt-code")
 import expts_labeled_data
 import score_data
 import prelim_loc_data_expts
+import affil_subsets
 
 
 def score_data_set(data_dir, trial_num, inference_dir_name, method_spec="all",
                    save_pair_scores=True, sims_for_mixed_pairs=None, flip_high_ps=False,
                    remove_boundary_items=False, remove_boundary_affils=True, pi_vector_to_use=None, prefer_faiss=True,
-                   affil_subset_every_1_4=False, loc_data_bipartite_file=None, loc_data_true_pairs_file=None,
+                   affil_subset_every_1_4=False, affil_subset_type=0, affil_subset_fraction=0,
+                   loc_data_bipartite_file=None, loc_data_true_pairs_file=None,
                    verbose=False):
     """
     This function hard-codes some file names (to standardize):
@@ -104,16 +107,38 @@ def score_data_set(data_dir, trial_num, inference_dir_name, method_spec="all",
 
     if affil_subset_every_1_4:
         subset_adj_mat = sparse.csc_matrix((adj_mat.shape[0], int(adj_mat.shape[1]/4)), dtype='int')
-        # copy over every 4th row
+        # copy over every 4th column
         for i in range(int(adj_mat.shape[1]/4)):
             subset_adj_mat[:, i] = adj_mat[:, 4 * i]
         adj_mat = subset_adj_mat
         if pi_vector_to_use is not None:
-            subset_pi_vector = [pi_vector_to_use[4*i] for i in range(int(len(pi_vector_to_use)/4))]
+            subset_pi_vector = np.array([pi_vector_to_use[4*i] for i in range(int(len(pi_vector_to_use)/4))])
             pi_vector_to_use = subset_pi_vector
+
+    if affil_subset_type > 0:
+        if pi_vector_to_use is not None:
+            affils_to_keep = affil_subsets.compute_affil_subsets(pi_vector_to_use, affil_subset_fraction, affil_subset_type)
+            pi_vector_to_use = pi_vector_to_use[affils_to_keep]
+        else:
+            tmp_pi_vector = np.asarray(adj_mat.sum(axis=0)).squeeze() / float(adj_mat.shape[0])
+            affils_to_keep = affil_subsets.compute_affil_subsets(tmp_pi_vector, affil_subset_fraction, affil_subset_type)
+        adj_mat = adj_mat[:, affils_to_keep]
 
     if not files_already_present:
         [os.remove(infile) for infile in fullpathfiles]
+
+    # did affil_subsetting remove all data? If so, going to get errors. Don't run anything, just print.
+    if affil_subset_type > 0 and np.sum(adj_mat) == 0:
+        affil_subsets.print_results_for_0data(num_true_pos, adj_mat, true_labels_func=true_labels_func,
+                        method_spec=method_spec,
+                        evals_outfile=evals_outfile,
+                        pair_scores_outfile=pair_scores_outfile, row_labels=item_names,
+                        print_timing=verbose, prefer_faiss=prefer_faiss,
+                        mixed_pairs_sims=sims_for_mixed_pairs,
+                        flip_high_ps=flip_high_ps, pi_vector_to_use=pi_vector_to_use,
+                        remove_boundary_items=remove_boundary_items, remove_boundary_affils=remove_boundary_affils)
+        return
+
 
     # 2. run the expt
     score_data.run_and_eval(adj_mat, true_labels_func=true_labels_func,
@@ -133,6 +158,7 @@ def score_whole_directory(data_dir, inference_dir_name, method_spec="all",
                           remove_boundary_items=False, remove_boundary_affils=True,
                           pi_vector_to_use=None, prefer_faiss=True, affil_subset_every_1_4=False,
                           loc_data_bipartite_file=None, loc_data_true_pairs_file=None,
+                          affil_subset_type=0, affil_subset_fraction=0,
                           verbose=False):
     """
     Runs all trials in a directory.
@@ -187,6 +213,8 @@ def score_whole_directory(data_dir, inference_dir_name, method_spec="all",
                                     'affil_subset_every_1_4': affil_subset_every_1_4,
                                     'loc_data_bipartite_file': loc_data_bipartite_file,
                                     'loc_data_true_pairs_file': loc_data_true_pairs_file,
+                                    'affil_subset_type': affil_subset_type,
+                                    'affil_subset_fraction': affil_subset_fraction,
                                     'verbose': verbose})
              for trial in range(1, num_trials+1)]
         [r.get() for r in mp_results]   # r.get() blocks until process completes
@@ -202,7 +230,9 @@ def score_whole_directory(data_dir, inference_dir_name, method_spec="all",
                            pi_vector_to_use=pi_vector_to_use, prefer_faiss=prefer_faiss,
                            affil_subset_every_1_4=affil_subset_every_1_4,
                            loc_data_bipartite_file=loc_data_bipartite_file,
-                           loc_data_true_pairs_file=loc_data_true_pairs_file, verbose=verbose)
+                           loc_data_true_pairs_file=loc_data_true_pairs_file,
+                           affil_subset_type=affil_subset_type, affil_subset_fraction=affil_subset_fraction,
+                           verbose=verbose)
 
 
     # clean up and summarize
@@ -267,6 +297,14 @@ def summarize_results(inference_dir_path, num_trials_expected):
     [os.remove(inference_dir_path + "/" + res_file) for res_file in res_files]
 
     return num_results_found
+
+
+def get_true_labels_from_matrix(pairs_generator, edge_matrix):
+    labels = []
+    for (row_idx1, row_idx2, item1_name, item2_name, pair_x, pair_y) in pairs_generator:
+        label = True if (edge_matrix[row_idx1, row_idx2] == 1) else False
+        labels.append(label)
+    return labels
 
 
 if __name__ == "__main__":

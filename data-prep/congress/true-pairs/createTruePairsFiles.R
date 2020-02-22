@@ -47,13 +47,16 @@ constructListOfTruePairs = function(sponsorsAdjMatFile, outFile, fractionOfPeopl
 	pairsToKeep = pairNames[labels==1, ]
 	numDistinctItems = length(unique(c(pairsToKeep[[1]], pairsToKeep[[2]])))
     
-	write.table(pairsToKeep, file=outFile, sep="\t", row.names=F, col.names=F, quote=F)
+	if (!is.null(outFile)) {
+		write.table(pairsToKeep, file=outFile, sep="\t", row.names=F, col.names=F, quote=F)
+	}
 
     print(paste("Data set had", numItemsInDataSet, "items; we picked", sum(labels==1), "pairs, which involved",
           numDistinctItems, "distinct items total"))
     print(paste("Min num cosponsorships for a true pair was", cutoffValue, 
                 " (", round(100*percentileWanted, 0), "th percentile); max was", max(m_s)))
     
+	return(cutoffValue)
 }
 
 

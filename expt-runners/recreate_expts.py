@@ -38,6 +38,9 @@ def record_of_runs():
     real_data_congress(base_dir)    # in inf_sept17, using remove_boundary_items=False to match old results from R
     real_data_congress(base_dir)    # in inf_sept25, using remove_boundary_items=True so exp model can be fit
 
+    base_dir = '/home/lfriedl/ASOUND-bipartite/expts/newsgroups/new'
+    real_data_newsgroups(base_dir)
+
 
 def real_data_reality(base_dir):
     settings = ['allPairs-appsByDay', 'allPairs-appsByWeek', 'allPairs-bluetoothByDay', 'allPairs-bluetoothByWeek',
@@ -84,7 +87,6 @@ def real_data_newsgroups(base_dir):
         print("Ran " + data_dir + " in " + str(end - start) + " secs\n\n\n")
 
 
-
 def data_for_test_cases():
     # the trial that crashed with an all-zero item. (used as basis for test cases.)
     base_dir = '/home/lfriedl/ASOUND-bipartite/expts/reality-mining/new'
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     #                                             num_trials=12, run_in_parallel=True)
 
     # check handling of all-0 items: these two versions should come out different (and exponential will have NAs)
-    methods = set(scoring_methods.all_defined_methods) - set(['weighted_corr_exp'])
+    methods = set(scoring_methods.all_defined_methods) - {'weighted_corr_exp'}
     for setting_num in range(60, 62):
     #for setting_num in range(1, 2):
         current_pi_vector = pi_vectors[setting_num - 1]
@@ -138,4 +140,4 @@ if __name__ == "__main__":
         #                                        pi_vector_to_use=current_pi_vector, num_trials=20, run_in_parallel=True,
         #                                        remove_boundary_items=True)
 
-    np.nan_to_num([-np.inf, 0, 1, np.nan, np.inf])
+    # np.nan_to_num([-np.inf, 0, 1, np.nan, np.inf])
